@@ -9,8 +9,8 @@ import * as tf from "@tensorflow/tfjs";
 import * as d3 from "d3";
 
 // Constants
-const PURPLE_COLOR = "#8a2be2";
-const STROKE_COLOR = "#414141";
+const LOSS_COLOR = "rgb(110, 122, 234)";
+const TEXT_COLOR = "#212529";
 const LAYER_COLORS = {
   input: "#ff7f0e",
   hidden: "#2ca02c",
@@ -37,8 +37,8 @@ const MlpViz = () => {
     m: 4,
     k: 8,
     n: 2,
-    learningRate: 0.001,
-    numSteps: 1000,
+    lr: 0.001,
+    steps: 500,
   });
   const [trainingData, setTrainingData] = useState([]);
   const [isTraining, setIsTraining] = useState(false);
@@ -63,14 +63,21 @@ const MlpViz = () => {
   const matrixRef = useRef();
   const activationRef = useRef();
   const gradientRef = useRef();
+  const [display, setDisplay] = useState("none");
+
+  useEffect(() => {
+    if (isTraining) {
+      setDisplay("block");
+    }
+  }, [isTraining]);
 
   const paramOptions = useMemo(
     () => ({
       m: [1, 2, 4, 8],
-      k: [2, 4, 8, 16, 32],
+      k: [2, 4, 8, 16],
       n: [1, 2, 4, 8],
-      learningRate: [0.1, 0.01, 0.001, 0.0001],
-      numSteps: [100, 500, 1000, 2000, 3500],
+      lr: [0.1, 0.01, 0.001, 0.0001],
+      steps: [100, 500, 1000, 2000],
     }),
     []
   );
@@ -132,7 +139,7 @@ const MlpViz = () => {
     g.append("path")
       .datum(trainingData)
       .attr("fill", "none")
-      .attr("stroke", PURPLE_COLOR)
+      .attr("stroke", LOSS_COLOR)
       .attr("stroke-width", 2)
       .attr("d", line);
   }, [trainingData]);
@@ -142,7 +149,7 @@ const MlpViz = () => {
     svg.selectAll("*").remove();
 
     const width = 700;
-    const height = 400;
+    const height = 500;
     svg.attr("viewBox", `0 0 ${width} ${height}`);
 
     const layers = [params.m, params.k, params.n];
@@ -163,8 +170,8 @@ const MlpViz = () => {
 
       const startX =
         layerIndex === 0
-          ? width / 4 - (cellSize * nextLayerNodes) / 2
-          : (3 * width) / 4 - (cellSize * nextLayerNodes) / 2;
+          ? width / 3 - (cellSize * nextLayerNodes) / 2
+          : (3 * width) / 3.75 - (cellSize * nextLayerNodes) / 2;
       const startY = (height - cellSize * currentLayerNodes) / 2;
 
       const layerWeights =
@@ -173,11 +180,11 @@ const MlpViz = () => {
       svg
         .append("text")
         .attr("x", startX + (cellSize * nextLayerNodes) / 2)
-        .attr("y", startY - 40)
+        .attr("y", startY - 50)
         .attr("text-anchor", "middle")
         .style("font-size", "16px")
-        .style("font-weight", "bold")
-        .style("fill", PURPLE_COLOR)
+        .style("font-weight", "normal")
+        .style("fill", TEXT_COLOR)
         .text(
           layerIndex === 0 ? "Input-Hidden Weights" : "Hidden-Output Weights"
         );
@@ -243,7 +250,7 @@ const MlpViz = () => {
             .attr("width", cellSize)
             .attr("height", cellSize)
             .attr("fill", colorScale(weight))
-            .attr("stroke", STROKE_COLOR);
+            .attr("stroke", TEXT_COLOR);
 
           cell
             .on("mouseover", (event, d) => {
@@ -263,11 +270,11 @@ const MlpViz = () => {
 
     svg
       .append("text")
-      .attr("x", width / 2)
-      .attr("y", height - 20)
+      .attr("x", width / 1.8)
+      .attr("y", height - 50)
       .attr("text-anchor", "middle")
-      .style("font-size", "14px")
-      .style("fill", "#333")
+      .style("font-size", "13px")
+      .style("fill", "#212529aa")
       .text(
         "Color intensity represents weight value: Blue (positive), White (near zero), Red (negative)"
       );
@@ -314,8 +321,8 @@ const MlpViz = () => {
         .attr("y", startY - 30)
         .attr("text-anchor", "middle")
         .style("font-size", "14px")
-        .style("font-weight", "bold")
-        .style("fill", PURPLE_COLOR)
+        .style("font-weight", "normal")
+        .style("fill", TEXT_COLOR)
         .text(`${layerNames[layerIndex]}`);
 
       for (let i = 0; i < layerSize; i++) {
@@ -330,7 +337,7 @@ const MlpViz = () => {
           .attr("width", cellSize)
           .attr("height", cellSize)
           .attr("fill", colorScale(activation))
-          .attr("stroke", STROKE_COLOR);
+          .attr("stroke", TEXT_COLOR);
 
         cell
           .on("mouseover", (event, d) => {
@@ -352,8 +359,8 @@ const MlpViz = () => {
     const svg = d3.select(gradientRef.current);
     svg.selectAll("*").remove();
 
-    const width = 600;
-    const height = 400;
+    const width = 800;
+    const height = 500;
     svg.attr("viewBox", `0 0 ${width} ${height}`);
 
     const layers = [params.m, params.k, params.n];
@@ -373,7 +380,8 @@ const MlpViz = () => {
       const nextLayerNodes = layers[layerIndex + 1];
 
       const startX =
-        (width / 2 - cellSize * nextLayerNodes) / 2 + (layerIndex * width) / 2;
+        (width / 1.5 - cellSize * nextLayerNodes) / 2 +
+        (layerIndex * width) / 2;
       const startY = (height - cellSize * currentLayerNodes) / 2;
 
       const layerGradients =
@@ -384,9 +392,9 @@ const MlpViz = () => {
         .attr("x", startX + (cellSize * nextLayerNodes) / 2)
         .attr("y", startY - 30)
         .attr("text-anchor", "middle")
-        .style("font-size", "16px")
-        .style("font-weight", "bold")
-        .style("fill", PURPLE_COLOR)
+        .style("font-size", "17px")
+        .style("font-weight", "normal")
+        .style("fill", TEXT_COLOR)
         .text(
           layerIndex === 0
             ? "Input-Hidden Gradients"
@@ -409,7 +417,7 @@ const MlpViz = () => {
             .attr("width", cellSize)
             .attr("height", cellSize)
             .attr("fill", colorScale(gradient))
-            .attr("stroke", STROKE_COLOR);
+            .attr("stroke", TEXT_COLOR);
 
           cell
             .on("mouseover", (event, d) => {
@@ -461,14 +469,14 @@ const MlpViz = () => {
     );
     model.add(tf.layers.dense({ units: params.n }));
     model.compile({
-      optimizer: tf.train.sgd(params.learningRate),
+      optimizer: tf.train.sgd(params.lr),
       loss: "meanSquaredError",
     });
 
     const xs = tf.randomNormal([1, params.m]);
     const ys = tf.randomNormal([1, params.n]);
 
-    for (let i = 0; i < params.numSteps; i++) {
+    for (let i = 0; i < params.steps; i++) {
       const history = await model.fit(xs, ys, { epochs: 1 });
       const loss = history.history.loss[0];
       setTrainingData((prevData) => [...prevData, { step: i, loss }]);
@@ -527,115 +535,83 @@ const MlpViz = () => {
   };
 
   return (
-    <div
-      style={{
-        fontFamily: "Arial, sans-serif",
-        maxWidth: "1000px",
-        margin: "0 auto",
-        padding: "20px",
-      }}
-    >
-      <h1
-        style={{
-          textAlign: "center",
-          paddingBottom: "32px",
-          color: PURPLE_COLOR,
-        }}
-      >
-        Interactive MLP Visualization
-      </h1>
-
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginBottom: "20px",
-        }}
-      >
-        <div style={{ flex: 2, marginRight: "20px" }}>
-          <h3>Weight Matrix Visualization</h3>
-          <svg ref={matrixRef} style={{ width: "100%", height: "400px" }}></svg>
+    <div className="container">
+      <div className="flex-container">
+        <div className="matrix-container">
+          <div className="input-matrix">
+            <h3>Weight Matrix Visualization</h3>
+            <svg ref={matrixRef}></svg>
+          </div>
         </div>
 
-        <div style={{ flex: 1 }}>
+        <div className="params-container">
           <h3>Parameters</h3>
-          {Object.entries(params).map(([key, value]) => (
-            <div key={key} style={{ marginBottom: "15px" }}>
-              <label style={{ display: "block", marginBottom: "5px" }}>
-                {key}: {value}
-              </label>
-              <select
-                value={value}
-                onChange={(e) =>
-                  updateParam(
-                    key,
-                    key === "learningRate"
-                      ? parseFloat(e.target.value)
-                      : parseInt(e.target.value)
-                  )
-                }
-                style={{ width: "100%", padding: "5px" }}
-              >
-                {paramOptions[key].map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ))}
+          <div className="param-items">
+            {Object.entries(params).map(([key, value]) => (
+              <div key={key} className="param-item">
+                <label className="param-label">
+                  {key}: {value}
+                </label>
+                <select
+                  value={value}
+                  onChange={(e) =>
+                    updateParam(
+                      key,
+                      key === "lr"
+                        ? parseFloat(e.target.value)
+                        : parseInt(e.target.value)
+                    )
+                  }
+                  className="param-select"
+                >
+                  {paramOptions[key].map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
-
-      <button
-        onClick={startTraining}
-        disabled={isTraining}
-        style={{
-          padding: "10px 20px",
-          fontSize: "16px",
-          backgroundColor: isTraining ? "#cccccc" : PURPLE_COLOR,
-          color: "white",
-          border: "none",
-          borderRadius: "5px",
-          cursor: isTraining ? "not-allowed" : "pointer",
-          display: "block",
-          margin: "20px auto",
-        }}
-      >
-        {isTraining ? "Training..." : "Start Training"}
-      </button>
-
-      <div>
+      <div className="training-container">
         <h3>Training Loss</h3>
-        <svg ref={svgRef} style={{ width: "100%", height: "400px" }}></svg>
+        <div className="training-b">
+          <button
+            onClick={startTraining}
+            disabled={isTraining}
+            className="start-button"
+          >
+            {isTraining ? "Training..." : "Start Training?"}
+          </button>
+        </div>
+        <div className="training-c">
+          <svg ref={svgRef} style={{ display }}></svg>
+        </div>
       </div>
+      <div className="box-container">
+        <div className="activation-container">
+          <h3>Activation Vectors</h3>
+          <svg ref={activationRef}></svg>
+        </div>
 
-      <div>
-        <h3>Activation Vectors</h3>
-        <svg
-          ref={activationRef}
-          style={{ width: "100%", height: "200px" }}
-        ></svg>
-      </div>
+        <div className="gradient-container">
+          <h3>Gradient Matrices</h3>
+          <br></br>
+          <svg ref={gradientRef}></svg>
+        </div>
 
-      <h3>Gradient Matrices</h3>
-      <svg ref={gradientRef} style={{ width: "100%", height: "400px" }}></svg>
-
-      <div
-        style={{
-          position: "absolute",
-          backgroundColor: "rgba(0,0,0,0.7)",
-          color: "white",
-          padding: "5px",
-          borderRadius: "3px",
-          fontSize: "12px",
-          pointerEvents: "none",
-          opacity: tooltip.show ? 1 : 0,
-          left: `${tooltip.x}px`,
-          top: `${tooltip.y}px`,
-        }}
-      >
-        {tooltip.text}
+        <div
+          className="tooltip"
+          style={{
+            opacity: tooltip.show ? 1 : 0,
+            left: `${tooltip.x}px`,
+            top: `${tooltip.y}px`,
+          }}
+        >
+          {tooltip.text}
+        </div>
       </div>
     </div>
   );
