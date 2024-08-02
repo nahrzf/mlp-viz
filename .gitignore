@@ -24,3 +24,4 @@ yarn-error.log*
 
 .vscode
 webpack.config.js
+dist 
